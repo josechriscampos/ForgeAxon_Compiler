@@ -1,0 +1,6 @@
+move angle = 90;
+move counter = 0;
+stay maxSpeed = 120;
+move active = true;
+move say = "Hola";
+move distance: Distance = 2.5;

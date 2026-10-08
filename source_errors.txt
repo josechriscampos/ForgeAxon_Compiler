@@ -1,0 +1,6 @@
+move angle = 90;
+move angle = 180;
+stay maxSpeed = 120;
+stay maxSpeed = 100;
+move distance: Distance = "no soy numero";
+move active: Boolean = 42;
