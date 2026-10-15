@@ -1,6 +1,21 @@
-move angle = 90;
+behavior greet(): void {
+    move message = "Hola robot";
+    give;
+}
+
+behavior turnArm(target: Angle): Boolean {
+    move active = true;
+    give true;
+}
+
+behavior resetPosition(): void {
+    stay home: Angle = 0;
+    give;
+}
+
 move counter = 0;
 stay maxSpeed = 120;
-move active = true;
-move say = "Hola";
-move distance: Distance = 2.5;
+
+greet();
+turnArm(90);
+resetPosition();

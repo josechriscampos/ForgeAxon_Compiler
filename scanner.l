@@ -13,6 +13,9 @@
 
 "move"                 { return TOKEN_MOVE; }
 "stay"                 { return TOKEN_STAY; }
+"behavior"             { return TOKEN_BEHAVIOR; }
+"give"                 { return TOKEN_GIVE; }
+"void"                 { return TOKEN_VOID; }
 
 "true"                 { yylval.int_val = 1; return TOKEN_BOOL_LITERAL; }
 "false"                { yylval.int_val = 0; return TOKEN_BOOL_LITERAL; }
@@ -28,9 +31,13 @@
 ":"                    { return ':'; }
 "="                    { return '='; }
 ";"                    { return ';'; }
+"{"                    { return '{'; }
+"}"                    { return '}'; }
+"("                    { return '('; }
+")"                    { return ')'; }
+","                    { return ','; }
 
 \"([^\\\"]|\\.)*\"     {
-                         /* Strip quotes */
                          yytext[yyleng - 1] = '\0';
                          yylval.str_val = strdup(yytext + 1);
                          return TOKEN_STRING_LITERAL;

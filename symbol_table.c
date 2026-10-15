@@ -9,10 +9,9 @@ void symtab_init(void) {
     head = NULL;
 }
 
-/* Devuelve 1 si insertó, 0 si ya existía (redeclaración) */
 int symtab_insert(const char *name, const char *dataType, SymbolCategory category) {
     if (symtab_lookup(name) != NULL) {
-        return 0; /* ya existe */
+        return 0;
     }
     Symbol *s = (Symbol *)malloc(sizeof(Symbol));
     s->name = strdup(name);
@@ -32,6 +31,15 @@ Symbol* symtab_lookup(const char *name) {
     return NULL;
 }
 
+static const char *category_name(SymbolCategory c) {
+    switch (c) {
+        case SYM_VARIABLE: return "variable";
+        case SYM_CONSTANT: return "constant";
+        case SYM_FUNCTION: return "behavior";
+    }
+    return "unknown";
+}
+
 void symtab_print(void) {
     printf("\n--- Symbol Table ---\n");
     printf("%-15s %-15s %-10s\n", "Name", "Type", "Category");
@@ -41,7 +49,7 @@ void symtab_print(void) {
         printf("%-15s %-15s %-10s\n",
                cur->name,
                cur->dataType,
-               cur->category == SYM_CONSTANT ? "constant" : "variable");
+               category_name(cur->category));
         cur = cur->next;
     }
 }
