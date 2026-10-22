@@ -3,7 +3,7 @@
 #include "symbol_table.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>    ← AGREGAR ESTA LÍNEA
+#include <string.h>
 
 extern int yylex();
 void yyerror(const char *s);
@@ -24,6 +24,8 @@ ASTNode *ast_root = NULL;
 %token TOKEN_BEHAVIOR
 %token TOKEN_GIVE
 %token TOKEN_VOID
+%token TOKEN_WHEN
+%token TOKEN_OTHERWISE
 %token <str_val> TOKEN_TYPE
 %token <str_val> TOKEN_IDENTIFIER
 %token <str_val> TOKEN_STRING_LITERAL
@@ -35,6 +37,7 @@ ASTNode *ast_root = NULL;
 %type <node> function_declaration function_call_statement
 %type <node> function_statement_list function_statement give_statement
 %type <node> argument_list optional_arguments
+%type <node> if_statement
 %type <parameter> parameter parameter_list optional_parameters
 %type <str_val> return_type
 
@@ -61,18 +64,11 @@ statement_list:
     ;
 
 statement:
-    var_declaration ';' {
-        $$ = $1;
-    }
-    | const_declaration ';' {
-        $$ = $1;
-    }
-    | function_declaration {
-        $$ = $1;
-    }
-    | function_call_statement {
-        $$ = $1;
-    }
+    var_declaration ';' { $$ = $1; }
+    | const_declaration ';' { $$ = $1; }
+    | function_declaration { $$ = $1; }
+    | function_call_statement { $$ = $1; }
+    | if_statement { $$ = $1; }
     ;
 
 var_declaration:
@@ -150,6 +146,8 @@ function_statement:
     var_declaration ';' { $$ = $1; }
     | const_declaration ';' { $$ = $1; }
     | give_statement { $$ = $1; }
+    | if_statement { $$ = $1; }
+    | function_call_statement { $$ = $1; }
     ;
 
 give_statement:
@@ -168,6 +166,15 @@ function_call_statement:
     }
     ;
 
+if_statement:
+    TOKEN_WHEN expression '{' function_statement_list '}' {
+        $$ = create_if_node($2, $4, NULL);
+    }
+    | TOKEN_WHEN expression '{' function_statement_list '}' TOKEN_OTHERWISE '{' function_statement_list '}' {
+        $$ = create_if_node($2, $4, $8);
+    }
+    ;
+
 optional_arguments:
     /* empty */ { $$ = NULL; }
     | argument_list { $$ = $1; }
@@ -182,19 +189,11 @@ argument_list:
     ;
 
 expression:
-    TOKEN_INT_LITERAL {
-        $$ = create_int_node($1);
-    }
-    | TOKEN_FLOAT_LITERAL {
-        $$ = create_float_node($1);
-    }
-    | TOKEN_STRING_LITERAL {
-        $$ = create_str_node($1);
-        free($1);
-    }
-    | TOKEN_BOOL_LITERAL {
-        $$ = create_bool_node($1);
-    }
+    TOKEN_INT_LITERAL { $$ = create_int_node($1); }
+    | TOKEN_FLOAT_LITERAL { $$ = create_float_node($1); }
+    | TOKEN_STRING_LITERAL { $$ = create_str_node($1); free($1); }
+    | TOKEN_BOOL_LITERAL { $$ = create_bool_node($1); }
+    | TOKEN_IDENTIFIER { $$ = create_identifier_ref($1); free($1); }
     ;
 
 %%

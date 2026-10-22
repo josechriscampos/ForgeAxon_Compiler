@@ -1,21 +1,20 @@
-behavior greet(): void {
-    move message = "Hola robot";
-    give;
-}
-
-behavior turnArm(target: Angle): Boolean {
-    move active = true;
-    give true;
-}
-
-behavior resetPosition(): void {
-    stay home: Angle = 0;
-    give;
-}
-
+move active = true;
 move counter = 0;
-stay maxSpeed = 120;
 
-greet();
-turnArm(90);
-resetPosition();
+when active {
+    move message = "robot activo";
+} otherwise {
+    move message = "robot inactivo";
+}
+
+behavior turnArm(target: Angle): void {
+    move engaged = true;
+    when engaged {
+        move angle = target;
+    }
+    give;
+}
+
+when counter {
+    turnArm(90);
+}

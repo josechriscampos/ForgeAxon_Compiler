@@ -16,6 +16,8 @@
 "behavior"             { return TOKEN_BEHAVIOR; }
 "give"                 { return TOKEN_GIVE; }
 "void"                 { return TOKEN_VOID; }
+"when"                 { return TOKEN_WHEN; }
+"otherwise"            { return TOKEN_OTHERWISE; }
 
 "true"                 { yylval.int_val = 1; return TOKEN_BOOL_LITERAL; }
 "false"                { yylval.int_val = 0; return TOKEN_BOOL_LITERAL; }

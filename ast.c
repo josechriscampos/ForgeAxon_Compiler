@@ -44,6 +44,14 @@ ASTNode *create_bool_node(int val) {
   return node;
 }
 
+ASTNode *create_identifier_ref(const char *name) {
+  ASTNode *node = allocate_new_node();
+  node->type = IDENTIFIER_REF;
+  node->identifierRef.name = strdup(name);
+  node->next = NULL;
+  return node;
+}
+
 ASTNode *create_var_decl(char *dtype, const char *name, ASTNode *init) {
   ASTNode *node = allocate_new_node();
   node->type = VAR_DECL;
@@ -105,22 +113,41 @@ ASTNode *create_give_node(ASTNode *value) {
   return node;
 }
 
+ASTNode *create_if_node(ASTNode *condition, ASTNode *thenBody, ASTNode *elseBody) {
+  ASTNode *node = allocate_new_node();
+  node->type = IF_STMT;
+  node->ifStatement.condition = condition;
+  node->ifStatement.thenBody = thenBody;
+  node->ifStatement.elseBody = elseBody;
+  node->next = NULL;
+  return node;
+}
+
 static void print_indent(int depth) {
   for (int i = 0; i < depth; i++) printf("  ");
 }
 
+static void print_ast_node(ASTNode *node, int depth);
+
+static void print_value(ASTNode *v, int depth) {
+  print_indent(depth);
+  if (v->type == INT_LITERAL) {
+    printf("IntegerLiteral(%d)\n", v->intLit.intValue);
+  } else if (v->type == FLOAT_LITERAL) {
+    printf("FloatLiteral(%g)\n", v->floatLit.floatValue);
+  } else if (v->type == STR_LITERAL) {
+    printf("StringLiteral(\"%s\")\n", v->strLit.strValue);
+  } else if (v->type == BOOL_LITERAL) {
+    printf("BooleanLiteral(%s)\n", v->boolLit.boolValue ? "true" : "false");
+  } else if (v->type == IDENTIFIER_REF) {
+    printf("IdentifierRef(%s)\n", v->identifierRef.name);
+  }
+}
+
 static void print_init(ASTNode *init, int depth) {
   print_indent(depth);
-  if (init->type == INT_LITERAL) {
-    printf("Init: IntegerLiteral(%d)\n", init->intLit.intValue);
-  } else if (init->type == FLOAT_LITERAL) {
-    printf("Init: FloatLiteral(%g)\n", init->floatLit.floatValue);
-  } else if (init->type == STR_LITERAL) {
-    printf("Init: StringLiteral(\"%s\")\n", init->strLit.strValue);
-  } else if (init->type == BOOL_LITERAL) {
-    printf("Init: BooleanLiteral(%s)\n",
-           init->boolLit.boolValue ? "true" : "false");
-  }
+  printf("Init:\n");
+  print_value(init, depth + 1);
 }
 
 static void print_ast_node(ASTNode *node, int depth) {
@@ -141,21 +168,17 @@ static void print_ast_node(ASTNode *node, int depth) {
     case FUNCTION_DECL: {
       FunctionDeclaration *fn = &node->functionDeclaration;
       printf("Behavior: %s -> %s\n", fn->identifier, fn->returnType);
-      print_indent(depth + 1);
-      printf("Parameters:\n");
+      print_indent(depth + 1); printf("Parameters:\n");
       if (fn->parameters == NULL) {
-        print_indent(depth + 2);
-        printf("<none>\n");
+        print_indent(depth + 2); printf("<none>\n");
       }
       for (FunctionParameter *p = fn->parameters; p != NULL; p = p->next) {
         print_indent(depth + 2);
         printf("%s: %s\n", p->identifier, p->dataType);
       }
-      print_indent(depth + 1);
-      printf("Body:\n");
+      print_indent(depth + 1); printf("Body:\n");
       if (fn->body == NULL) {
-        print_indent(depth + 2);
-        printf("<empty>\n");
+        print_indent(depth + 2); printf("<empty>\n");
       } else {
         for (ASTNode *stmt = fn->body; stmt != NULL; stmt = stmt->next) {
           print_ast_node(stmt, depth + 2);
@@ -165,25 +188,44 @@ static void print_ast_node(ASTNode *node, int depth) {
     }
     case FUNCTION_CALL:
       printf("Call: %s\n", node->functionCall.identifier);
-      print_indent(depth + 1);
-      printf("Arguments:\n");
+      print_indent(depth + 1); printf("Arguments:\n");
       if (node->functionCall.arguments == NULL) {
-        print_indent(depth + 2);
-        printf("<none>\n");
+        print_indent(depth + 2); printf("<none>\n");
       } else {
         for (ASTNode *arg = node->functionCall.arguments; arg != NULL; arg = arg->next) {
-          print_init(arg, depth + 2);
+          print_value(arg, depth + 2);
         }
       }
       break;
     case GIVE_STMT:
       printf("Give\n");
       if (node->giveStatement.value) {
-        print_init(node->giveStatement.value, depth + 1);
+        print_value(node->giveStatement.value, depth + 1);
       } else {
-        print_indent(depth + 1);
-        printf("<void>\n");
+        print_indent(depth + 1); printf("<void>\n");
       }
+      break;
+    case IF_STMT:
+      printf("When\n");
+      print_indent(depth + 1); printf("Condition:\n");
+      print_value(node->ifStatement.condition, depth + 2);
+      print_indent(depth + 1); printf("Then:\n");
+      if (node->ifStatement.thenBody == NULL) {
+        print_indent(depth + 2); printf("<empty>\n");
+      } else {
+        for (ASTNode *s = node->ifStatement.thenBody; s != NULL; s = s->next) {
+          print_ast_node(s, depth + 2);
+        }
+      }
+      if (node->ifStatement.elseBody != NULL) {
+        print_indent(depth + 1); printf("Otherwise:\n");
+        for (ASTNode *s = node->ifStatement.elseBody; s != NULL; s = s->next) {
+          print_ast_node(s, depth + 2);
+        }
+      }
+      break;
+    case IDENTIFIER_REF:
+      printf("IdentifierRef(%s)\n", node->identifierRef.name);
       break;
     default:
       break;
@@ -233,6 +275,16 @@ void free_ast(ASTNode *node) {
 
     case GIVE_STMT:
       if (node->giveStatement.value) free_ast(node->giveStatement.value);
+      break;
+
+    case IF_STMT:
+      if (node->ifStatement.condition) free_ast(node->ifStatement.condition);
+      if (node->ifStatement.thenBody) free_ast(node->ifStatement.thenBody);
+      if (node->ifStatement.elseBody) free_ast(node->ifStatement.elseBody);
+      break;
+
+    case IDENTIFIER_REF:
+      if (node->identifierRef.name) free(node->identifierRef.name);
       break;
 
     case STR_LITERAL:
