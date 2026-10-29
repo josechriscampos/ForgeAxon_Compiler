@@ -1,0 +1,4 @@
+move angles: pack of Number = [90, 180, 270];
+stay fixed: pack of Angle = [45, 90];
+move names: pack of Text = ["arm", "base", "wrist"];
+move broken: pack of Number = [10, "nope", 30];

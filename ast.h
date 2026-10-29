@@ -13,6 +13,7 @@ typedef enum {
   GIVE_STMT,
   IF_STMT,
   IDENTIFIER_REF,
+  ARRAY_LITERAL,   /* NUEVO: arrays */
 } NodeType;
 
 typedef struct VarDeclaration {
@@ -68,6 +69,9 @@ typedef struct ASTNode {
     struct {
       char *name;
     } identifierRef;
+    struct {                      /* NUEVO: arrays */
+      struct ASTNode *elements;
+    } arrayLit;
   };
 
   struct ASTNode *next;
@@ -82,6 +86,7 @@ ASTNode* create_bool_node(int val);
 ASTNode* create_identifier_ref(const char *name);
 ASTNode* create_var_decl(char *dtype, const char *name, ASTNode *init);
 ASTNode* create_const_decl(char *dtype, const char *name, ASTNode *init);
+ASTNode* create_array_node(ASTNode *elements);   /* NUEVO: arrays */
 FunctionParameter* create_function_parameter(const char *dtype, const char *name);
 ASTNode* create_function_decl(const char *returnType, const char *name,
                               FunctionParameter *parameters, ASTNode *body);

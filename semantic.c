@@ -25,18 +25,56 @@ static int type_matches(const char *declared, const char *actual) {
     return 0;
 }
 
+/* NUEVO (arrays): detecta si un tipo es un pack, o sea si termina en "[]". */
+static int is_pack_type(const char *t) {
+    size_t n = strlen(t);
+    return n >= 2 && t[n - 2] == '[' && t[n - 1] == ']';
+}
+
+/* NUEVO (arrays): valida que cada elemento cuadre con el tipo del pack. */
+static void check_pack_declaration(ASTNode *node, const char *kind) {
+    const char *name = node->varDeclaration.identifier;
+    const char *declared = node->varDeclaration.dataType; /* ej: "Number[]" */
+    ASTNode *init = node->varDeclaration.init;
+
+    /* El tipo del elemento es lo declarado sin el "[]" final */
+    char element_type[64];
+    size_t len = strlen(declared) - 2;
+    if (len >= sizeof(element_type)) len = sizeof(element_type) - 1;
+    memcpy(element_type, declared, len);
+    element_type[len] = '\0';
+
+    if (!init || init->type != ARRAY_LITERAL) {
+        fprintf(stderr,
+                "[Semantic Error] %s '%s': se esperaba un literal de array para el tipo '%s'\n",
+                kind, name, declared);
+        errors++;
+        return;
+    }
+
+    for (ASTNode *el = init->arrayLit.elements; el != NULL; el = el->next) {
+        const char *el_type = infer_type(el);
+        if (!type_matches(element_type, el_type)) {
+            fprintf(stderr,
+                    "[Semantic Error] %s '%s': elemento de tipo '%s' no coincide con '%s'\n",
+                    kind, name, el_type, element_type);
+            errors++;
+        }
+    }
+}
+
 static void check_declaration(ASTNode *node, const char *kind) {
     const char *name = node->varDeclaration.identifier;
     const char *declared_type = node->varDeclaration.dataType;
-    const char *inferred = infer_type(node->varDeclaration.init);
 
-    /* Chequeo 1: redeclaración */
-    if (symtab_lookup(name) == NULL) {
-        /* No está en la tabla: el parser debería haberlo insertado.
-           Caso raro, pero por completitud lo reportamos. */
+    /* NUEVO (arrays): si el tipo es un pack, usa el chequeo de arrays */
+    if (is_pack_type(declared_type)) {
+        check_pack_declaration(node, kind);
+        return;
     }
 
-    /* Chequeo 2: coincidencia de tipo */
+    const char *inferred = infer_type(node->varDeclaration.init);
+
     if (!type_matches(declared_type, inferred)) {
         fprintf(stderr,
                 "[Semantic Error] %s '%s': declared type '%s' does not match value type '%s'\n",
@@ -47,11 +85,6 @@ static void check_declaration(ASTNode *node, const char *kind) {
 
 int semantic_analyze(ASTNode *root) {
     errors = 0;
-
-    /* Para detectar redeclaraciones recorremos el AST en orden
-       y vamos marcando cuáles ya vimos. Usamos una tabla auxiliar
-       (reaprovechamos lookup contra lo ya insertado por el parser:
-       si aparece dos veces en el AST = redeclaración). */
 
     /* Recorrido 1: chequeos de tipo */
     ASTNode *cur = root;

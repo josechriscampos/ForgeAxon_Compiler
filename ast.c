@@ -52,6 +52,16 @@ ASTNode *create_identifier_ref(const char *name) {
   return node;
 }
 
+/* NUEVO (arrays): nodo contenedor del literal de array.
+   Los elementos ya vienen encadenados por ->next desde el parser. */
+ASTNode *create_array_node(ASTNode *elements) {
+  ASTNode *node = allocate_new_node();
+  node->type = ARRAY_LITERAL;
+  node->arrayLit.elements = elements;
+  node->next = NULL;
+  return node;
+}
+
 ASTNode *create_var_decl(char *dtype, const char *name, ASTNode *init) {
   ASTNode *node = allocate_new_node();
   node->type = VAR_DECL;
@@ -141,6 +151,11 @@ static void print_value(ASTNode *v, int depth) {
     printf("BooleanLiteral(%s)\n", v->boolLit.boolValue ? "true" : "false");
   } else if (v->type == IDENTIFIER_REF) {
     printf("IdentifierRef(%s)\n", v->identifierRef.name);
+  } else if (v->type == ARRAY_LITERAL) {        /* NUEVO: arrays */
+    printf("ArrayLiteral:\n");
+    for (ASTNode *el = v->arrayLit.elements; el != NULL; el = el->next) {
+      print_value(el, depth + 1);
+    }
   }
 }
 
@@ -289,6 +304,10 @@ void free_ast(ASTNode *node) {
 
     case STR_LITERAL:
       if (node->strLit.strValue) free(node->strLit.strValue);
+      break;
+
+    case ARRAY_LITERAL:                       /* NUEVO: arrays */
+      free_ast(node->arrayLit.elements);
       break;
 
     case INT_LITERAL:

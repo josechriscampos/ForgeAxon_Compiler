@@ -9,6 +9,16 @@ extern int yylex();
 void yyerror(const char *s);
 
 ASTNode *ast_root = NULL;
+
+/* NUEVO (arrays): arma la etiqueta de tipo "<Tipo>[]" para un pack.
+   Ej: "Number" -> "Number[]". El tipo del array es un string, igual
+   que todos los tipos en este compilador. */
+static char *make_pack_type(const char *element) {
+    size_t len = strlen(element) + 3; /* element + "[]" + '\0' */
+    char *s = malloc(len);
+    snprintf(s, len, "%s[]", element);
+    return s;
+}
 %}
 
 %union {
@@ -26,6 +36,8 @@ ASTNode *ast_root = NULL;
 %token TOKEN_VOID
 %token TOKEN_WHEN
 %token TOKEN_OTHERWISE
+%token TOKEN_PACK
+%token TOKEN_OF
 %token <str_val> TOKEN_TYPE
 %token <str_val> TOKEN_IDENTIFIER
 %token <str_val> TOKEN_STRING_LITERAL
@@ -38,6 +50,7 @@ ASTNode *ast_root = NULL;
 %type <node> function_statement_list function_statement give_statement
 %type <node> argument_list optional_arguments
 %type <node> if_statement
+%type <node> array_literal
 %type <parameter> parameter parameter_list optional_parameters
 %type <str_val> return_type
 
@@ -83,6 +96,15 @@ var_declaration:
         free($2);
         free($4);
     }
+    | TOKEN_MOVE TOKEN_IDENTIFIER ':' TOKEN_PACK TOKEN_OF TOKEN_TYPE '=' array_literal {
+        /* NUEVO (arrays): declaracion de array con "pack of <Tipo>" */
+        char *pack_type = make_pack_type($6);
+        $$ = create_var_decl(pack_type, $2, $8);
+        symtab_insert($2, pack_type, SYM_VARIABLE);
+        free(pack_type);
+        free($2);
+        free($6);
+    }
     ;
 
 const_declaration:
@@ -96,6 +118,15 @@ const_declaration:
         symtab_insert($2, $4, SYM_CONSTANT);
         free($2);
         free($4);
+    }
+    | TOKEN_STAY TOKEN_IDENTIFIER ':' TOKEN_PACK TOKEN_OF TOKEN_TYPE '=' array_literal {
+        /* NUEVO (arrays): array constante con "pack of <Tipo>" */
+        char *pack_type = make_pack_type($6);
+        $$ = create_const_decl(pack_type, $2, $8);
+        symtab_insert($2, pack_type, SYM_CONSTANT);
+        free(pack_type);
+        free($2);
+        free($6);
     }
     ;
 
@@ -185,6 +216,15 @@ argument_list:
     | expression ',' argument_list {
         $1->next = $3;
         $$ = $1;
+    }
+    ;
+
+/* NUEVO (arrays): un literal de array es [ lista-de-valores ].
+   Reutilizo optional_arguments, que ya es una lista de expresiones
+   separadas por coma (lo mismo que va dentro de los corchetes). */
+array_literal:
+    '[' optional_arguments ']' {
+        $$ = create_array_node($2);
     }
     ;
 

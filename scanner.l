@@ -18,6 +18,8 @@
 "void"                 { return TOKEN_VOID; }
 "when"                 { return TOKEN_WHEN; }
 "otherwise"            { return TOKEN_OTHERWISE; }
+"pack"                 { return TOKEN_PACK; }   /* NUEVO: arrays */
+"of"                   { return TOKEN_OF; }     /* NUEVO: arrays */
 
 "true"                 { yylval.int_val = 1; return TOKEN_BOOL_LITERAL; }
 "false"                { yylval.int_val = 0; return TOKEN_BOOL_LITERAL; }
@@ -38,6 +40,8 @@
 "("                    { return '('; }
 ")"                    { return ')'; }
 ","                    { return ','; }
+"["                    { return '['; }   /* NUEVO: arrays */
+"]"                    { return ']'; }   /* NUEVO: arrays */
 
 \"([^\\\"]|\\.)*\"     {
                          yytext[yyleng - 1] = '\0';
